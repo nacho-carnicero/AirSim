@@ -21,6 +21,7 @@ STRICT_MODE_OFF
 #include "json.hpp"
 STRICT_MODE_ON
 #include "UnitTests.h"
+#include <unistd.h>
 
 #if defined(_WIN32)
 #include <filesystem>
@@ -78,7 +79,7 @@ void DebugOutput(const char* message, ...) {
 
     va_end(args);
 }
-#else 
+#else
 // how do you write to the debug output windows on Unix ?
 void DebugOutput(const char* message, ...) {
     va_list args;
@@ -114,7 +115,7 @@ int baudRate = 115200;
 
 // server mode is when you want another app to connect to Pixhawk and publish data back to this process.
 // this server will be listening for UDP packets, this is mutually exclusive with 'offboard' as this
-// server will become the primary "droneConnection".  For example, jMAVSim can talk to this server 
+// server will become the primary "droneConnection".  For example, jMAVSim can talk to this server
 // using their the -qgc option.
 bool server = false;
 PortAddress serverEndPoint;
@@ -128,8 +129,8 @@ PortAddress logViewerEndPoint;
 std::vector<PortAddress> proxyEndPoints;
 #define DEFAULT_PROXY_PORT 14580
 
-// this switch controls whether we turn off the RC remote active link loss detection 
-// if you do not have radio connected this is needed to stop "failsafe" override in pixhawk 
+// this switch controls whether we turn off the RC remote active link loss detection
+// if you do not have radio connected this is needed to stop "failsafe" override in pixhawk
 // from kicking in when you try and fly.
 bool noRadio = false;
 bool unitTest = false;
@@ -1134,7 +1135,7 @@ bool connect()
         usedPorts.push_back(serverEndPoint);
 
         if (droneConnection != nullptr) {
-            // then we have a serial connection as the primary droneConnection, so publish all PX4 messages out to the server 
+            // then we have a serial connection as the primary droneConnection, so publish all PX4 messages out to the server
             droneConnection->join(serverConnection);
         }
         else {
@@ -1411,7 +1412,7 @@ int console(std::stringstream& script) {
                     auto str = std::string(Command::kCommandLogPrefix) + line;
                     MavLinkStatustext st;
                     strncpy(st.text, str.c_str(), 50);
-                    MavLinkMessage m; 
+                    MavLinkMessage m;
                     st.encode(m);
                     droneConnection->prepareForSending(m);
                     std::lock_guard<std::mutex> lock(logLock);
@@ -1462,57 +1463,49 @@ void completion(int state) {
 
 }
 
+std::shared_ptr<mavlinkcom::MavLinkNode> sitl_node;
+std::shared_ptr<mavlinkcom::MavLinkConnection> sitl_connection;
+std::shared_ptr<mavlinkcom::MavLinkConnection> simulator_connection;
 int main(int argc, const char* argv[])
 {
-    if (!ParseCommandLine(argc, argv))
-    {
-        PrintUsage();
-        return 1;
-    }
+  printf("Connecting to ports...");
+  std::string ip = "127.0.0.1";
+  int sitl_port = 14560;
+  int simulator_port = 14561;
+  sitl_connection = MavLinkConnection::connectRemoteUdp("sitl", "127.0.0.1", ip, sitl_port);
+  simulator_connection = MavLinkConnection::connectLocalUdp("simulator", "127.0.0.1", simulator_port);
+  printf("Connected");
+  sitl_node = std::make_shared<MavLinkNode>(142, 42);
+  sitl_node->connect(sitl_connection);
+  simulator_connection->join(sitl_connection);
+  int i=0;
 
-#if defined(__cpp_lib_experimental_filesystem)
-    if (convertExisting) {
-        if (jsonLogFormat) {
-            ConvertLogFilesToJson(logDirectory);
-        }
-        else if (csvLogFormat) {
-            ConvertLogFilesToCsv(logDirectory);
-        }
-        else {
-            //FilterLogFiles(logDirectory);
-        }
-        return 0;
-    }
-#endif
+  while (true)
+  {
+    usleep(1000000);
+    // mavlinkcom::MavLinkHilSensor hil_sensor;
+    // hil_sensor.time_usec = static_cast<uint64_t>(1000.0*i);
+    // hil_sensor.xacc = 0;
+    // hil_sensor.yacc = 0;
+    // hil_sensor.zacc = 0;
+    //
+    // hil_sensor.xgyro = 0;
+    // hil_sensor.ygyro = 0;
+    // hil_sensor.zgyro = 0;
+    //
+    // hil_sensor.xmag = 0;
+    // hil_sensor.ymag = 0;
+    // hil_sensor.zmag = 0;
+    //
+    // hil_sensor.abs_pressure = 0;
+    // hil_sensor.pressure_alt = 0;
+    // //TODO: enable tempeprature? diff_presure
+    // hil_sensor.fields_updated = (1 << 31);
 
-    OpenLogFiles();
-
-    if (serial) {
-        if (comPort.size() == 0 || comPort == "*")
-        {
-            comPort = findPixhawk();
-            if (comPort == "") {
-                printf("### Error: PX4 not found on your SerialPort, or it is not available");
-                return 1;
-            }
-        }
-    }
-
-
-    if (unitTest) {
-        UnitTests test;
-        test.RunAll(comPort, baudRate);
-        return 0;
-    }
-
-    try {
-        return console(initScript);
-    }
-    catch (const std::exception& e)
-    {
-        printf("Exception: %s\n", e.what());
-    }
-
-    CloseLogFiles();
+    // printf("Sending HIL sensor message");
+    // if (sitl_node != nullptr) {
+    //     sitl_node->sendMessage(hil_sensor);
+    // }
+    i++;
+  }
 }
-
