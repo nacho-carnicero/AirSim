@@ -230,6 +230,18 @@ public:
 				remoteaddr.sin_family = other.sin_family;
 				remoteaddr.sin_addr = other.sin_addr;
 				remoteaddr.sin_port = other.sin_port;
+				// If program is running on OSX connect here the server to the client socket
+				#if defined (__APPLE__)
+				socklen_t addrlen = sizeof(reinterpret_cast<sockaddr*>(&remoteaddr));
+				rc = ::connect(sock, reinterpret_cast<sockaddr*>(&remoteaddr), addrlen);
+				if (rc < 0)
+				{
+					int hr = WSAGetLastError();
+					throw std::runtime_error(Utils::stringf("UdpServerPort socket could not connect to client socket at %s:%d, error: %d\n",
+						remoteHost.c_str(), remotePort, hr));
+					return hr;
+				}
+				#endif
 			}
 			else if (other.sin_addr.s_addr != remoteaddr.sin_addr.s_addr)
 			{
