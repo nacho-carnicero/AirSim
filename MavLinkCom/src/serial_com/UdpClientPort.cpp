@@ -184,7 +184,15 @@ public:
 		{
 			socklen_t addrlen = sizeof(sockaddr_in);
 			#if defined (__APPLE__)
-			int rc = ::read(sock, reinterpret_cast<char*>(result), bytesToRead);
+			if (remoteaddr.sin_port == 0)
+			{
+				// Server is not connected yet to client socket, it does not know from whom it has to receive data
+				int rc = recvfrom(sock, reinterpret_cast<char*>(result), bytesToRead, 0, reinterpret_cast<sockaddr*>(&other), &addrlen);
+			}
+			else
+			{
+				int rc = ::read(sock, reinterpret_cast<char*>(result), bytesToRead);
+			}
 			#else
 			int rc = recvfrom(sock, reinterpret_cast<char*>(result), bytesToRead, 0, reinterpret_cast<sockaddr*>(&other), &addrlen);
 			#endif
