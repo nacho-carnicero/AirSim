@@ -433,7 +433,11 @@ void MavLinkConnectionImpl::readPackets()
                         msg_queue_.push(message);
                     }
                     if (waiting_for_msg_) {
+                        printf("I know you're waiting for a message, I'm gonna increase semaphore for you.\n");
+                        fflush(stdout);
                         msg_available_.post();
+                        printf("You should be able to drainQueue now... \n");
+                        fflush(stdout);
                     }
                 }
             }
