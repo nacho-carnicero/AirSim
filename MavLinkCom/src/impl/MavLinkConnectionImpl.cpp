@@ -513,9 +513,11 @@ void MavLinkConnectionImpl::publishPackets()
     while (!closed) {
 
         drainQueue();
-        
+
         waiting_for_msg_ = true;
+        printf("\nWaiting for message\n");
         msg_available_.wait();
+        printf("Got message\n");
         waiting_for_msg_ = false;
     }
 }
