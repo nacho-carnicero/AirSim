@@ -151,6 +151,8 @@ public:
 	{
 		if (remoteaddr.sin_port == 0)
 		{
+			printf("Well port is still zero\n");
+			fflush(stdout);
 			// well if we are creating a server, we don't know when the client is going to connect, so skip this exception for now.
 			//throw std::runtime_error("UdpClientPort cannot send until we've received something first so we can find out what port to send to.\n");
 			return 0;
@@ -159,6 +161,8 @@ public:
 		socklen_t addrlen = sizeof(sockaddr_in);
 		#if defined (__APPLE__)
 		int hr = ::write(sock, reinterpret_cast<const char*>(ptr), count);
+		printf("Wrote %d bytes to port %d\n", hr, ntohs(remoteaddr.sin_port));
+		fflush(stdout);
 		#else
 		int hr = sendto(sock, reinterpret_cast<const char*>(ptr), count, 0, reinterpret_cast<sockaddr*>(&remoteaddr), addrlen);
 		#endif
@@ -183,19 +187,26 @@ public:
 		while (!closed_)
 		{
 			socklen_t addrlen = sizeof(sockaddr_in);
-			#if defined (__APPLE__)
+#if defined (__APPLE__)
+			int rc = 0;
 			if (remoteaddr.sin_port == 0)
 			{
 				// Server is not connected yet to client socket, it does not know from whom it has to receive data
-				int rc = recvfrom(sock, reinterpret_cast<char*>(result), bytesToRead, 0, reinterpret_cast<sockaddr*>(&other), &addrlen);
+				printf("Hoolaa\n");
+				fflush(stdout);
+				rc = recvfrom(sock, reinterpret_cast<char*>(result), bytesToRead, 0, reinterpret_cast<sockaddr*>(&other), &addrlen);
+				printf("Received recvfrom server\n");
+				fflush(stdout);
 			}
 			else
 			{
-				int rc = ::read(sock, reinterpret_cast<char*>(result), bytesToRead);
+				rc = ::read(sock, reinterpret_cast<char*>(result), bytesToRead);
+				printf("Received %d bytes from remote port %d\n", rc, ntohs(remoteaddr.sin_port));
+				fflush(stdout);
 			}
-			#else
+#else
 			int rc = recvfrom(sock, reinterpret_cast<char*>(result), bytesToRead, 0, reinterpret_cast<sockaddr*>(&other), &addrlen);
-			#endif
+#endif
 			if (rc < 0)
 			{
 				int hr = WSAGetLastError();
@@ -215,6 +226,8 @@ public:
 					continue;
 				}
 #else
+				printf("Error reading from socket with code %d\n", hr);
+				fflush(stdout);
 				if (hr == EINTR)
 				{
 					// skip this, it is was interrupted, and if user is closing the port closed_ will be true.
@@ -240,15 +253,17 @@ public:
 				remoteaddr.sin_port = other.sin_port;
 				// If program is running on OSX connect here the server to the client socket
 				#if defined (__APPLE__)
-				socklen_t addrlen = sizeof(reinterpret_cast<sockaddr*>(&remoteaddr));
-				rc = ::connect(sock, reinterpret_cast<sockaddr*>(&remoteaddr), addrlen);
+				socklen_t addrlen = sizeof(sockaddr_in);
+				int rc = ::connect(sock, reinterpret_cast<sockaddr*>(&remoteaddr), addrlen);
 				if (rc < 0)
 				{
 					int hr = WSAGetLastError();
-					throw std::runtime_error(Utils::stringf("UdpServerPort socket could not connect to client socket at %s:%d, error: %d\n",
-						remoteHost.c_str(), remotePort, hr));
+					throw std::runtime_error(Utils::stringf("UdpServerPort socket could not connect to client socket, error: %d\n",
+					hr));
 					return hr;
 				}
+				printf("UdpServerPort socket connected to client socket.\n");
+				fflush(stdout);
 				#endif
 			}
 			else if (other.sin_addr.s_addr != remoteaddr.sin_addr.s_addr)
