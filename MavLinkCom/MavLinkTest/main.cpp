@@ -1468,16 +1468,24 @@ std::shared_ptr<mavlinkcom::MavLinkConnection> sitl_connection;
 std::shared_ptr<mavlinkcom::MavLinkConnection> simulator_connection;
 int main(int argc, const char* argv[])
 {
-  printf("Connecting to ports...");
+  printf("Connecting to ports...\n");
+  fflush(stdout);
   std::string ip = "127.0.0.1";
   int sitl_port = 14560;
   int simulator_port = 14561;
   sitl_connection = MavLinkConnection::connectRemoteUdp("sitl", "127.0.0.1", ip, sitl_port);
   simulator_connection = MavLinkConnection::connectLocalUdp("simulator", "127.0.0.1", simulator_port);
-  printf("Connected");
+  printf("Connected\n");
+  fflush(stdout);
   sitl_node = std::make_shared<MavLinkNode>(142, 42);
-  sitl_node->connect(sitl_connection);
-  simulator_connection->join(sitl_connection);
+  // sitl_node->connect(sitl_connection);
+  // simulator_connection->join(sitl_connection);
+  // sitl_node->startHeartbeat();
+  sitl_node->connect(simulator_connection);
+  sitl_node->startHeartbeat();
+  sitl_connection->join(simulator_connection);
+  printf("All connections done\n\n\n");
+  fflush(stdout);
   int i=0;
 
   while (true)
