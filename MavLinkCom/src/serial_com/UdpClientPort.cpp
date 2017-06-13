@@ -165,6 +165,8 @@ public:
 		fflush(stdout);
 		#else
 		int hr = sendto(sock, reinterpret_cast<const char*>(ptr), count, 0, reinterpret_cast<sockaddr*>(&remoteaddr), addrlen);
+		printf("Wrote %d bytes to port %d\n", hr, ntohs(remoteaddr.sin_port));
+		fflush(stdout);
 		#endif
 		if (hr == SOCKET_ERROR)
 		{
@@ -206,6 +208,7 @@ public:
 			}
 #else
 			int rc = recvfrom(sock, reinterpret_cast<char*>(result), bytesToRead, 0, reinterpret_cast<sockaddr*>(&other), &addrlen);
+			printf("Received %d bytes from remote port %d\n", rc, ntohs(other.sin_port));
 #endif
 			if (rc < 0)
 			{

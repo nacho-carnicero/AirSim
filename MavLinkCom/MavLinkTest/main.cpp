@@ -1482,7 +1482,7 @@ int main(int argc, const char* argv[])
   // simulator_connection->join(sitl_connection);
   // sitl_node->startHeartbeat();
   sitl_node->connect(simulator_connection);
-  sitl_node->startHeartbeat();
+  // sitl_node->startHeartbeat();
   sitl_connection->join(simulator_connection);
   printf("All connections done\n\n\n");
   fflush(stdout);

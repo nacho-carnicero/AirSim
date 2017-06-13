@@ -483,6 +483,8 @@ void MavLinkConnectionImpl::drainQueue()
 
         auto startTime = std::chrono::system_clock::now();
         std::shared_ptr<MavLinkConnection> sharedPtr = std::shared_ptr<MavLinkConnection>(this->con_);
+        printf("Entering listener loop of connection %s\n", this->getName().c_str());
+        fflush(stdout);
         for (auto ptr = snapshot.begin(); ptr != end; ptr++)
         {
             try {
