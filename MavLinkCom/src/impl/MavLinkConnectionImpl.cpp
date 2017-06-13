@@ -432,6 +432,8 @@ void MavLinkConnectionImpl::readPackets()
                         ::memcpy(message.payload64, msg.payload64, PayloadSize * sizeof(uint64_t));
                         msg_queue_.push(message);
                     }
+                    printf("Ok I received a message, let's see if you're waiting for a message.\n");
+                    fflush(stdout);
                     if (waiting_for_msg_) {
                         printf("I know you're waiting for a message, I'm gonna increase semaphore for you.\n");
                         fflush(stdout);
